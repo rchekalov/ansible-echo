@@ -1,0 +1,4 @@
+    - hosts: all
+      tasks:
+        - name: Test message
+          command: echo "Test message"
