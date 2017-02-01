@@ -1,13 +1,17 @@
 import os
 import sys
+import json
+import yaml
+
 from collections import namedtuple
 
 from ansible.parsing.dataloader import DataLoader
 from ansible.vars import VariableManager
 from ansible.inventory import Inventory
-from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible.plugins.callback import CallbackBase
-import json
+from ansible.playbook.play import Play
+from ansible.executor.task_queue_manager import TaskQueueManager
+
 
 class ResultCallback(CallbackBase):
     def v2_runner_on_ok(self, result, **kwargs):
@@ -32,7 +36,23 @@ options = Options(listtags=False, listtasks=False, listhosts=False, syntax=False
 
 passwords = {}
 
-pbex = PlaybookExecutor(playbooks=[playbook_path], inventory=inventory, variable_manager=variable_manager, loader=loader, options=options, passwords=passwords)
-cb = ResultCallback()
-pbex._tqm._stdout_callback = cb
-results = pbex.run()
+stdout_callback = ResultCallback()
+
+with open(playbook_path) as stream:
+	play_book, = yaml.load(stream)
+	play = Play().load(play_book, variable_manager=variable_manager, loader=loader)
+
+tqm = None
+try:
+    tqm = TaskQueueManager(
+              inventory=inventory,
+              variable_manager=variable_manager,
+              loader=loader,
+              options=options,
+              passwords=passwords,
+              stdout_callback=stdout_callback,
+          )
+    result = tqm.run(play)
+finally:
+    if tqm is not None:
+        tqm.cleanup()
