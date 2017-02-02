@@ -50,7 +50,7 @@ try:
               loader=loader,
               options=options,
               passwords=passwords,
-              stdout_callback=stdout_callback,
+              #stdout_callback=stdout_callback,
           )
     result = tqm.run(play)
 finally:
